@@ -58,14 +58,16 @@ static CKTextKitRenderer *rendererForAttributes(CKTextKitAttributes &attributes,
 @implementation CKTextComponent
 {
   CKTextKitAttributes _attributes;
+  CKTextComponentSelectionAttributes _selectionAttributes;
   CKTextComponentAccessibilityContext _accessibilityContext;
 }
 
 + (instancetype)newWithTextAttributes:(const CKTextKitAttributes &)attributes
+                  selectionAttributes:(const CKTextComponentSelectionAttributes &)selectionAttributes
                        viewAttributes:(const CKViewComponentAttributeValueMap &)viewAttributes
                  accessibilityContext:(const CKTextComponentAccessibilityContext &)accessibilityContext
 {
-  CKTextKitAttributes copyAttributes = attributes.copy();
+  CKTextKitAttributes copiedAttributes = attributes.copy();
   CKViewComponentAttributeValueMap copiedMap = viewAttributes;
   CKTextComponent *c = [super newWithView:{
     [CKTextComponentView class],
@@ -74,11 +76,12 @@ static CKTextKitRenderer *rendererForAttributes(CKTextKitAttributes &attributes,
       .isAccessibilityElement = accessibilityContext.isAccessibilityElement,
       .accessibilityIdentifier = accessibilityContext.accessibilityIdentifier,
       .accessibilityLabel = accessibilityContext.accessibilityLabel.hasText()
-      ? accessibilityContext.accessibilityLabel : ^{ return copyAttributes.attributedString.string; }
+      ? accessibilityContext.accessibilityLabel : ^{ return copiedAttributes.attributedString.string; }
     }
   } size:{}];
   if (c) {
-    c->_attributes = copyAttributes;
+    c->_attributes = copiedAttributes;
+    c->_selectionAttributes = selectionAttributes;
     c->_accessibilityContext = accessibilityContext;
   }
   return c;
@@ -111,6 +114,8 @@ static CKTextKitRenderer *rendererForAttributes(CKTextKitAttributes &attributes,
   view.renderer = renderer;
   view.isAccessibilityElement = _accessibilityContext.isAccessibilityElement.boolValue;
   view.accessibilityLabel = _accessibilityContext.accessibilityLabel.hasText() ? _accessibilityContext.accessibilityLabel.value() : _attributes.attributedString.string;
+  view.selectionEnabled = _selectionAttributes.selectionEnabled;
+  view.menuItems = _selectionAttributes.menuItems;
   return result;
 }
 

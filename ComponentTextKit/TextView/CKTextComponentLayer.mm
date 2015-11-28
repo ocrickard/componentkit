@@ -16,7 +16,9 @@
 #import <ComponentKit/CKTextKitRendererCache.h>
 #import <ComponentKit/CKAssert.h>
 
-#import "CKTextComponentLayerHighlighter.h"
+#import "CKTextComponentLayerHighlightController.h"
+#import "CKTextComponentLayerSelectionController.h"
+#import "CKTextComponentLayerLoupeController.h"
 
 static CK::TextKit::Renderer::Cache *rasterContentsCache()
 {
@@ -27,7 +29,9 @@ static CK::TextKit::Renderer::Cache *rasterContentsCache()
 
 @implementation CKTextComponentLayer
 {
-  CKTextComponentLayerHighlighter *_highlighter;
+  CKTextComponentLayerHighlightController *_highlightController;
+  CKTextComponentLayerSelectionController *_selectionController;
+  CKTextComponentLayerLoupeController *_loupeController;
 }
 
 + (id)defaultValueForKey:(NSString *)key
@@ -44,6 +48,12 @@ static CK::TextKit::Renderer::Cache *rasterContentsCache()
     return (id)kCFBooleanTrue;
   }
   return [super defaultValueForKey:key];
+}
+
+- (void)dealloc
+{
+  CKAssertMainThread();
+  [self _invalidateSubcontrollers];
 }
 
 - (void)setNeedsDisplayOnBoundsChange:(BOOL)needsDisplayOnBoundsChange
@@ -74,6 +84,8 @@ static CK::TextKit::Renderer::Cache *rasterContentsCache()
       }
     }
     _renderer = renderer;
+    // We have a different renderer, we invalidate all selection, highlighting, and loupes.
+    [self _invalidateSubcontrollers];
     [self setNeedsAsyncDisplay];
   }
 }
@@ -114,24 +126,58 @@ static CK::TextKit::Renderer::Cache *rasterContentsCache()
   [super drawInContext:ctx];
 }
 
-#pragma mark - Highlighting
-
-- (CKTextComponentLayerHighlighter *)highlighter
-{
-  CKAssertMainThread();
-  if (!_highlighter) {
-    _highlighter = [[CKTextComponentLayerHighlighter alloc] initWithTextComponentLayer:self];
-  }
-  return _highlighter;
-}
-
 - (void)layoutSublayers
 {
   // Do not generate a highlighter if one doesn't already exist
-  if (_highlighter) {
-    [_highlighter layoutHighlight];
+  if (_highlightController) {
+    [_highlightController layoutHighlight];
+  }
+  if (_selectionController) {
+    [_selectionController layoutSelection];
   }
   [super layoutSublayers];
+}
+
+- (void)_invalidateSubcontrollers {
+  [_highlightController invalidate];
+  _highlightController = nil;
+  [_selectionController invalidate];
+  _selectionController = nil;
+  [_loupeController invalidate];
+  _loupeController = nil;
+}
+
+#pragma mark - Highlighting
+
+- (CKTextComponentLayerHighlightController *)highlightController
+{
+  CKAssertMainThread();
+  if (!_highlightController) {
+    _highlightController = [[CKTextComponentLayerHighlightController alloc] initWithTextComponentLayer:self];
+  }
+  return _highlightController;
+}
+
+#pragma mark - Selection
+
+- (CKTextComponentLayerSelectionController *)selectionController
+{
+  CKAssertMainThread();
+  if (!_selectionController) {
+    _selectionController = [[CKTextComponentLayerSelectionController alloc] initWithTextComponentLayer:self];
+  }
+  return _selectionController;
+}
+
+#pragma mark - Loupe
+
+- (CKTextComponentLayerLoupeController *)loupeController
+{
+  CKAssertMainThread();
+  if (!_loupeController) {
+    _loupeController = [[CKTextComponentLayerLoupeController alloc] initWithTargetLayer:self];
+  }
+  return _loupeController;
 }
 
 @end

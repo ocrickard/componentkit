@@ -11,6 +11,7 @@
 #import <UIKit/UIKit.h>
 
 #import <ComponentKit/CKTextKitAttributes.h>
+#import <ComponentKit/CKTextComponentViewMenuItem.h>
 
 enum {
   CKUIControlEventTextViewDidBeginHighlightingText  = 1 << 24,
@@ -24,5 +25,9 @@ enum {
 @interface CKTextComponentView : UIControl
 
 @property (nonatomic, strong) CKTextKitRenderer *renderer;
+
+@property (nonatomic, assign) BOOL selectionEnabled;
+
+- (void)setMenuItems:(const std::vector<CKTextComponentViewMenuItem> &)menuItems;
 
 @end

@@ -15,6 +15,8 @@
  */
 @interface CKTextComponentViewControlTracker : NSObject
 
+@property (nonatomic, strong, readonly) NSTextCheckingResult *trackingTextCheckingResult;
+
 - (BOOL)beginTrackingForTextComponentView:(CKTextComponentView *)view
                                 withTouch:(UITouch *)touch
                                 withEvent:(UIEvent *)event;

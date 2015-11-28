@@ -8,7 +8,7 @@
  *
  */
 
-#import "CKTextComponentLayerHighlighter.h"
+#import "CKTextComponentLayerHighlightController.h"
 
 #import <ComponentKit/CKAssert.h>
 
@@ -19,11 +19,13 @@
 
 #import "CKTextComponentLayer.h"
 
-@implementation CKTextComponentLayerHighlighter
+@implementation CKTextComponentLayerHighlightController
 {
   __weak CKTextComponentLayer *_textComponentLayer;
 
   CKHighlightOverlayLayer *_highlightOverlayLayer;
+
+  BOOL _invalidated;
 }
 
 - (instancetype)initWithTextComponentLayer:(CKTextComponentLayer *)textComponentLayer
@@ -80,6 +82,22 @@
     _highlightOverlayLayer.frame = _highlightOverlayLayer.superlayer.bounds;
     [CATransaction commit];
   }
+}
+
+- (void)invalidate
+{
+  if (_highlightOverlayLayer) {
+    [CATransaction begin];
+    [CATransaction setDisableActions:YES];
+    [_highlightOverlayLayer removeFromSuperlayer];
+    _highlightOverlayLayer = nil;
+    [CATransaction commit];
+  }
+}
+
+- (void)dealloc
+{
+  CKAssert(_invalidated, @"Must invalidate highlight controller before dealloc.");
 }
 
 @end

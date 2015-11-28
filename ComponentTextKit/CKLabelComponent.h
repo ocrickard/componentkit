@@ -48,6 +48,8 @@ struct CKLabelAttributes
   CGFloat lineSpacing;
   CGFloat paragraphSpacing;
   CGFloat paragraphSpacingBefore;
+
+  BOOL selectionEnabled;
 };
 
 /**

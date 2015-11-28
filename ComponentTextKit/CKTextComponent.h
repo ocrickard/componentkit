@@ -11,6 +11,9 @@
 #import <ComponentKit/CKComponent.h>
 
 #import <ComponentKit/CKTextKitAttributes.h>
+#import <ComponentKit/CKTextComponentViewMenuItem.h>
+
+#import <vector>
 
 struct CKTextComponentAccessibilityContext
 {
@@ -23,9 +26,20 @@ struct CKTextComponentAccessibilityContext
   CKComponentAccessibilityTextAttribute accessibilityLabel;
 };
 
+struct CKTextComponentSelectionAttributes
+{
+  BOOL selectionEnabled;
+  std::vector<CKTextComponentViewMenuItem> menuItems;
+};
+
+/**
+ CKTextComponent is the fully-featured text component for styled text in ComponentKit. It is able to handle embedded
+ links, varying styles (underlines, bold, colors), and text selection.
+ */
 @interface CKTextComponent : CKComponent
 
 + (instancetype)newWithTextAttributes:(const CKTextKitAttributes &)attributes
+                  selectionAttributes:(const CKTextComponentSelectionAttributes &)selectionAttributes
                        viewAttributes:(const CKViewComponentAttributeValueMap &)viewAttributes
                  accessibilityContext:(const CKTextComponentAccessibilityContext &)accessibilityContext;
 

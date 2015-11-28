@@ -100,4 +100,11 @@ typedef NS_ENUM(NSUInteger, CKTextKitRendererMeasureOption) {
  */
 - (CGRect)trailingRect;
 
+/**
+ The caret rect that should be rendered at the given text index.
+ 
+ @discussion In the external shadowed coordinate space.
+ */
+- (CGRect)caretRectForTextIndex:(NSUInteger)index;
+
 @end

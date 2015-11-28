@@ -16,6 +16,7 @@
 
 #import <ComponentKit/CKTextKitContext.h>
 #import <ComponentKit/CKTextKitShadower.h>
+#import <ComponentKit/CKInternalHelpers.h>
 
 static const CGFloat CKTextKitRendererGlyphTouchHitSlop = 5.0;
 static const CGFloat CKTextKitRendererTextCapHeightPadding = 1.3;
@@ -368,6 +369,56 @@ static const CGFloat CKTextKitRendererTextCapHeightPadding = 1.3;
     textRect = [layoutManager boundingRectForGlyphRange:glyphRange inTextContainer:textContainer];
   }];
   return textRect;
+}
+
+static const CGFloat kCaretWidth = 2.0;
+
+- (CGRect)caretRectForTextIndex:(NSUInteger)location
+{
+  __block CGRect caretRect = CGRectZero;
+  [self.context performBlockWithLockedTextKitComponents:^(NSLayoutManager *layoutManager, NSTextStorage *textStorage, NSTextContainer *textContainer) {
+    NSUInteger index = location;
+    CGFloat *positions = (CGFloat *)malloc(sizeof(CGFloat) * (textStorage.length + 1));
+    NSUInteger *characterIndexes = (NSUInteger *)malloc(sizeof(NSUInteger) * (textStorage.length + 1));
+    NSUInteger numberOfPositions = [layoutManager getLineFragmentInsertionPointsForCharacterAtIndex:index
+                                                                                 alternatePositions:NO
+                                                                                     inDisplayOrder:NO
+                                                                                          positions:positions
+                                                                                   characterIndexes:characterIndexes];
+
+    CGFloat insertionLocation = 0;
+    for (int i = 0; i < numberOfPositions; i++) {
+      CGFloat position = positions[i];
+      NSUInteger charIndex = characterIndexes[i];
+      if (index == charIndex) {
+        insertionLocation = position;
+        break;
+      }
+    }
+
+    free(positions);
+    free(characterIndexes);
+
+    CGRect lineRect;
+    NSTextContainer *extraLineFragmentTextContainer = [layoutManager extraLineFragmentTextContainer];
+    if (extraLineFragmentTextContainer && index >= textStorage.length) {
+      // We are in a newline at the end of the text container.
+      lineRect = [layoutManager extraLineFragmentRect];
+    } else {
+      if (index >= textStorage.length) {
+        index--;
+      }
+      lineRect = [layoutManager lineFragmentRectForGlyphAtIndex:[layoutManager glyphRangeForCharacterRange:NSMakeRange(index, 1)
+                                                                                      actualCharacterRange:NULL].location
+                                                 effectiveRange:NULL];
+    }
+
+    caretRect = CGRectMake(CKFloorPixelValue(insertionLocation < CGRectGetMaxX(lineRect) ? lineRect.origin.x + insertionLocation : CGRectGetMaxX(lineRect) - kCaretWidth),
+                           CKFloorPixelValue(lineRect.origin.y),
+                           CKCeilPixelValue(kCaretWidth),
+                           CKCeilPixelValue(lineRect.size.height));
+  }];
+  return caretRect;
 }
 
 @end

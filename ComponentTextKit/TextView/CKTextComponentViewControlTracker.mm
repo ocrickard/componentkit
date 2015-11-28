@@ -14,13 +14,10 @@
 #import <ComponentKit/CKTextKitRenderer+TextChecking.h>
 
 #import "CKTextComponentLayer.h"
-#import "CKTextComponentLayerHighlighter.h"
+#import "CKTextComponentLayerHighlightController.h"
 #import "CKTextComponentViewInternal.h"
 
 @implementation CKTextComponentViewControlTracker
-{
-  NSTextCheckingResult *_trackingTextCheckingResult;
-}
 
 /**
  sendActionsForControlEvents: calls sendAction:to:forEvent: with a nil event, so provide this alternate method to supply
@@ -43,7 +40,7 @@
   CGPoint point = [touch locationInView:view];
   NSTextCheckingResult *trackingTextCheckingResult = [view.renderer textCheckingResultAtPoint:point];
   if (trackingTextCheckingResult != nil) {
-    view.textLayer.highlighter.highlightedRange = trackingTextCheckingResult.range;
+    view.textLayer.highlightController.highlightedRange = trackingTextCheckingResult.range;
     [self _sendActionsToControl:view forControlEvents:CKUIControlEventTextViewDidBeginHighlightingText withEvent:event];
     _trackingTextCheckingResult = trackingTextCheckingResult;
   }
@@ -76,7 +73,7 @@
     if (touch != nil) {
       [self _sendActionsToControl:view forControlEvents:CKUIControlEventTextViewDidEndHighlightingText withEvent:event];
     }
-    view.textLayer.highlighter.highlightedRange = CKTextComponentLayerInvalidHighlightRange;
+    view.textLayer.highlightController.highlightedRange = CKTextComponentLayerInvalidHighlightRange;
   }
 }
 
@@ -86,7 +83,7 @@
   if (_trackingTextCheckingResult != nil) {
     _trackingTextCheckingResult = nil;
     [self _sendActionsToControl:view forControlEvents:CKUIControlEventTextViewDidCancelHighlightingText withEvent:event];
-    view.textLayer.highlighter.highlightedRange = CKTextComponentLayerInvalidHighlightRange;
+    view.textLayer.highlightController.highlightedRange = CKTextComponentLayerInvalidHighlightRange;
   }
 }
 

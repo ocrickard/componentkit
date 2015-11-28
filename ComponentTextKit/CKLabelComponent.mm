@@ -10,17 +10,50 @@
 
 #import "CKLabelComponent.h"
 
+#import <ComponentKit/CKTextKitRenderer.h>
 #import <ComponentKit/CKTextComponent.h>
+#import <ComponentKit/CKTextComponentView.h>
+#import <ComponentKit/CKTextComponentViewInternal.h>
+#import <ComponentKit/CKTextComponentLayer.h>
+#import <ComponentKit/CKTextComponentLayerSelectionController.h>
 
 @implementation CKLabelComponent
 
 + (instancetype)newWithLabelAttributes:(const CKLabelAttributes &)attributes
                         viewAttributes:(const CKViewComponentAttributeValueMap &)viewAttributes
 {
+  CKTextComponentSelectionAttributes selectionAttributes;
+  if (attributes.selectionEnabled) {
+    selectionAttributes = {
+      .selectionEnabled = YES,
+      .menuItems = {
+        {
+          .title = @"Copy",
+          .canPerformBlock = ^BOOL(CKTextComponentView *textView) {
+            return textView.textLayer.selectionController.selectedRange.length > 0;
+          },
+          .activationBlock = ^(CKTextComponentView *textView) {
+            NSRange selectedRange = textView.textLayer.selectionController.selectedRange;
+            if (selectedRange.length > 0) {
+              NSString *string = textView.renderer.attributes.attributedString.string;
+              NSRange clampedRange = NSIntersectionRange(selectedRange, NSMakeRange(0, string.length));
+              if (clampedRange.location != NSNotFound) {
+                NSString *substring = [string substringWithRange:clampedRange];
+                [[UIPasteboard generalPasteboard] setString:substring];
+              }
+            }
+          }
+        }
+      }
+    };
+  } else {
+    selectionAttributes = {};
+  }
   CKViewComponentAttributeValueMap copiedMap = viewAttributes;
   return [super newWithComponent:
           [CKTextComponent
            newWithTextAttributes:textKitAttributes(attributes)
+           selectionAttributes:selectionAttributes
            viewAttributes:std::move(copiedMap)
            accessibilityContext:{.isAccessibilityElement = @(YES)}]];
 }

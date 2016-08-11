@@ -14,8 +14,10 @@
 #import <UIKit/UIKit.h>
 
 #import <ComponentKit/CKAssert.h>
+#import <ComponentKit/CKSizeRange.h>
 
 @class CKComponent;
+@class CKComponentScopeRoot;
 
 struct CKComponentLayoutChild;
 
@@ -58,6 +60,23 @@ NSSet *CKMountComponentLayout(const CKComponentLayout &layout,
                               UIView *view,
                               NSSet *previouslyMountedComponents,
                               CKComponent *supercomponent);
+
+/**
+ Safely computes the layout of the given root component by guarding against nil components.
+ @param rootComponent The root component to compute the layout for.
+ @param sizeRange The size range to compute the component layout within.
+ */
+CKComponentLayout CKComputeRootComponentLayout(CKComponent *rootComponent, const CKSizeRange &sizeRange);
+
+/**
+ Safely computes the layout of the given component by guarding against nil components.
+ @param component The component to compute the layout for.
+ @param sizeRange The size range to compute the component layout within.
+ @param parentSize The parent size of the component to compute the layout for.
+ */
+CKComponentLayout CKComputeComponentLayout(CKComponent *component,
+                                           const CKSizeRange &sizeRange,
+                                           const CGSize parentSize);
 
 /** Unmounts all components returned by a previous call to CKMountComponentLayout. */
 void CKUnmountComponents(NSSet *componentsToUnmount);

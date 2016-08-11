@@ -210,7 +210,7 @@ struct CKComponentMountInfo {
 
   CKAssert(layout.component == self, @"Layout computed by %@ should return self as component, but returned %@",
            [self class], [layout.component class]);
-  CKSizeRange resolvedRange = constrainedSize.intersect(_size.resolve(parentSize));
+  CKSizeRange resolvedRange __attribute__((unused)) = constrainedSize.intersect(_size.resolve(parentSize));
   CKAssert(layout.size.width <= resolvedRange.max.width
            && layout.size.width >= resolvedRange.min.width
            && layout.size.height <= resolvedRange.max.height
@@ -295,7 +295,7 @@ static void *kRootComponentMountedViewKey = &kRootComponentMountedViewKey;
   return _scopeHandle.controller;
 }
 
-- (id)scopeFrameToken
+- (id<NSObject>)scopeFrameToken
 {
   return _scopeHandle ? @(_scopeHandle.globalIdentifier) : nil;
 }

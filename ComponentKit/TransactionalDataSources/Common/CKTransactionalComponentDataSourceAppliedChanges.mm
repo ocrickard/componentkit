@@ -9,13 +9,24 @@
  */
 
 #import "CKTransactionalComponentDataSourceAppliedChanges.h"
-#import "CKTransactionalComponentDataSourceAppliedChangesInternal.h"
+#import "CKTransactionalComponentDataSourceAppliedChanges.h"
 
 #import "ComponentUtilities.h"
 #import "CKEqualityHashHelpers.h"
 #import "CKMacros.h"
 
 @implementation CKTransactionalComponentDataSourceAppliedChanges
+
+- (instancetype)init
+{
+  return [self initWithUpdatedIndexPaths:nil
+                       removedIndexPaths:nil
+                         removedSections:nil
+                         movedIndexPaths:nil
+                        insertedSections:nil
+                      insertedIndexPaths:nil
+                                userInfo:nil];
+}
 
 - (instancetype)initWithUpdatedIndexPaths:(NSSet *)updatedIndexPaths
                         removedIndexPaths:(NSSet *)removedIndexPaths
@@ -35,6 +46,19 @@
     _userInfo = [userInfo copy];
   }
   return self;
+}
+
+- (NSString *)description
+{
+  return [NSString stringWithFormat:
+          @"<CKTransactionalComponentDataSourceAppliedChanges: %p>\n \
+          Updated Index Paths: %@\n \
+          Removed Index Paths: %@\n \
+          Remove Sections: %@\n \
+          Moves: %@\n \
+          Inserted Sections: %@\n \
+          Inserted Index Paths: %@",
+          self, _updatedIndexPaths, _removedIndexPaths, _removedSections, _movedIndexPaths, _insertedSections, _insertedIndexPaths];
 }
 
 - (BOOL)isEqual:(id)object

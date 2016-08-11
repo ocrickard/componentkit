@@ -12,8 +12,8 @@
 
 #import <ComponentKit/CKComponent.h>
 
-#import "CKComponentAccessibility.h"
-#import "CKComponentAccessibility_Private.h"
+#import <ComponentKit/CKComponentAccessibility.h>
+#import <ComponentKit/CKComponentAccessibility_Private.h>
 
 using namespace CK::Component::Accessibility;
 
@@ -33,15 +33,15 @@ using namespace CK::Component::Accessibility;
 {
   CKComponentViewConfiguration viewConfiguration = {
     [UIView class],
-    {{@selector(setBlah:), @"Blah"}},
+    {{@selector(setBlah:), @"Blah"}, {@selector(setAccessibilityIdentifier:), @"batman"}},
     {
-      .accessibilityIdentifier = @"batman", .isAccessibilityElement = @NO, .accessibilityLabel = ^{ return @"accessibleBatman"; }
+      .isAccessibilityElement = @NO, .accessibilityLabel = ^{ return @"accessibleBatman"; }
     }};
   CKComponentViewConfiguration expectedViewConfiguration = {
     [UIView class],
     {{@selector(setBlah:), @"Blah"}, {@selector(setAccessibilityIdentifier:), @"batman"}, {@selector(setAccessibilityLabel:), @"accessibleBatman"}, {@selector(setIsAccessibilityElement:), @NO}},
     {
-      .accessibilityIdentifier = @"batman", .isAccessibilityElement = @NO, .accessibilityLabel = @"accessibleBatman"
+      .isAccessibilityElement = @NO, .accessibilityLabel = @"accessibleBatman"
     }};
   XCTAssertTrue(AccessibleViewConfiguration(viewConfiguration) == expectedViewConfiguration, @"Accessibility attributes were applied incorrectly");
 }

@@ -35,7 +35,7 @@ static CKComponentLayout crossChildLayout(const CKStackLayoutComponentChild &chi
   // stretched children will have a cross dimension of at least crossMin
   const CGFloat childCrossMin = alignItems == CKStackLayoutAlignItemsStretch ? crossMin : 0;
   const CKSizeRange childSizeRange = directionSizeRange(style.direction, stackMin, stackMax, childCrossMin, crossMax);
-  return [child.component layoutThatFits:childSizeRange parentSize:size];
+  return CKComputeComponentLayout(child.component, childSizeRange, size);
 }
 
 /**
@@ -349,5 +349,5 @@ CKStackUnpositionedLayout CKStackUnpositionedLayout::compute(const std::vector<C
   stretchChildrenAlongCrossDimension(items, style, size);
 
   const CGFloat stackDimensionSum = computeStackDimensionSum(items, style);
-  return {items, stackDimensionSum, computeViolation(stackDimensionSum, style, sizeRange)};
+  return {std::move(items), stackDimensionSum, computeViolation(stackDimensionSum, style, sizeRange)};
 }

@@ -16,11 +16,11 @@
 
 #import "CKComponentAnimation.h"
 #import "CKComponentHostingViewDelegate.h"
+#import "CKComponentLayout.h"
 #import "CKComponentRootView.h"
 #import "CKComponentScopeRoot.h"
 #import "CKComponentSizeRangeProviding.h"
 #import "CKComponentSubclass.h"
-#import "CKWatchdogTimer.h"
 
 struct CKComponentHostingViewInputs {
   CKComponentScopeRoot *scopeRoot;
@@ -92,14 +92,12 @@ struct CKComponentHostingViewInputs {
   [super layoutSubviews];
   _containerView.frame = self.bounds;
 
-  if (!CGRectIsEmpty(self.bounds)) {
-    [self _synchronouslyUpdateComponentIfNeeded];
-    const CGSize size = self.bounds.size;
-    if (_mountedLayout.component != _component || !CGSizeEqualToSize(_mountedLayout.size, size)) {
-      _mountedLayout = [_component layoutThatFits:{size, size} parentSize:size];
-    }
-    _mountedComponents = [CKMountComponentLayout(_mountedLayout, _containerView, _mountedComponents, nil) copy];
+  [self _synchronouslyUpdateComponentIfNeeded];
+  const CGSize size = self.bounds.size;
+  if (_mountedLayout.component != _component || !CGSizeEqualToSize(_mountedLayout.size, size)) {
+    _mountedLayout = CKComputeRootComponentLayout(_component, {size, size});
   }
+  _mountedComponents = [CKMountComponentLayout(_mountedLayout, _containerView, _mountedComponents, nil) copy];
 }
 
 - (CGSize)sizeThatFits:(CGSize)size
@@ -107,7 +105,7 @@ struct CKComponentHostingViewInputs {
   CKAssertMainThread();
   [self _synchronouslyUpdateComponentIfNeeded];
   const CKSizeRange constrainedSize = [_sizeRangeProvider sizeRangeForBoundingSize:size];
-  return [_component layoutThatFits:constrainedSize parentSize:constrainedSize.max].size;
+  return CKComputeRootComponentLayout(_component, constrainedSize).size;
 }
 
 #pragma mark - Accessors
@@ -188,7 +186,6 @@ struct CKComponentHostingViewInputs {
 
   const auto inputs = std::make_shared<const CKComponentHostingViewInputs>(_pendingInputs);
   dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-    CKWatchdogTimer watchdog;
     const auto result = std::make_shared<const CKBuildComponentResult>(CKBuildComponent(
       inputs->scopeRoot,
       inputs->stateUpdates,
@@ -197,6 +194,7 @@ struct CKComponentHostingViewInputs {
     dispatch_async(dispatch_get_main_queue(), ^{
       if (!_componentNeedsUpdate) {
         // A synchronous update snuck in and took care of it for us.
+        _scheduledAsynchronousComponentUpdate = NO;
         return;
       }
 

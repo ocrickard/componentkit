@@ -162,9 +162,6 @@ namespace std {
                                       rootIdentifier:newRoot.globalIdentifier
                                       componentClass:componentClass
                                  initialStateCreator:initialStateCreator];
-
-  [newRoot registerAnnounceableEventsForController:newHandle.controller];
-
   CKComponentScopeFrame *newChild = [[CKComponentScopeFrame alloc] initWithHandle:newHandle];
   pair.frame->_children.insert({{componentClass, identifier}, newChild});
   return {.frame = newChild, .equivalentPreviousFrame = existingChildFrameOfEquivalentPreviousFrame};

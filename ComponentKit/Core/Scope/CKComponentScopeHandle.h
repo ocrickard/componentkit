@@ -42,6 +42,10 @@
 
 - (void)updateState:(id (^)(id))updateFunction mode:(CKUpdateMode)mode;
 
+/**
+ Should not be called until after handleForComponent:. The controller will assert (if assertions are compiled), and
+ return nil until `handleForComponent:` is called.
+ */
 @property (nonatomic, strong, readonly) CKComponentController *controller;
 @property (nonatomic, strong, readonly) id state;
 @property (nonatomic, readonly) CKComponentScopeHandleIdentifier globalIdentifier;

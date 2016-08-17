@@ -21,6 +21,7 @@
 {
   id<CKComponentStateListener> __weak _listener;
   Class _componentClass;
+  CKComponentController *_controller;
   CKComponentScopeRootIdentifier _rootIdentifier;
   BOOL _acquired;
 }
@@ -33,7 +34,8 @@
   }
 
   CKComponentScopeHandle *handle = currentScope->stack.top().frame.handle;
-  if ([handle acquireFromComponent:component]) {
+  if ([handle acquireFromComponent:component
+                              root:currentScope->newScopeRoot]) {
     if (CKSubclassOverridesSelector([CKComponent class], [component class], @selector(boundsAnimationFromPreviousComponent:))) {
       [currentScope->newScopeRoot registerBoundsAnimationComponent:component];
     }
@@ -56,7 +58,7 @@
                  rootIdentifier:rootIdentifier
                  componentClass:componentClass
                           state:initialStateCreator ? initialStateCreator() : [componentClass initialState]
-                     controller:newController(componentClass)];
+                     controller:nil];
 }
 
 - (instancetype)initWithListener:(id<CKComponentStateListener>)listener
@@ -102,6 +104,12 @@
                                                controller:_controller];
 }
 
+- (CKComponentController *)controller
+{
+  CKAssert(_acquired, @"Requesting controller from scope handle before acquisition. The controller will be nil.");
+  return _controller;
+}
+
 #pragma mark - State
 
 - (void)updateState:(id (^)(id))updateFunction mode:(CKUpdateMode)mode
@@ -122,9 +130,16 @@
 #pragma mark - Component Scope Handle Acquisition
 
 - (BOOL)acquireFromComponent:(CKComponent *)component
+                        root:(CKComponentScopeRoot *)root
 {
   if (!_acquired && [component isMemberOfClass:_componentClass]) {
     _acquired = YES;
+    if (!_controller) {
+      // A controller can be non-nil at this callsite during component re-generation because a new scope handle is
+      // generated in a new tree, that is acquired by a new component. We pass in the original component controller
+      // in that case, and we should avoid re-generating a new controller in that case.
+      _controller = newController(component, root);
+    }
     return YES;
   } else {
     return NO;
@@ -160,13 +175,16 @@ static Class controllerClassForComponentClass(Class componentClass)
   return it->second;
 }
 
-static CKComponentController *newController(Class componentClass)
+static CKComponentController *newController(CKComponent *component, CKComponentScopeRoot *root)
 {
-  Class controllerClass = controllerClassForComponentClass(componentClass);
+  Class controllerClass = controllerClassForComponentClass([component class]);
   if (controllerClass) {
     CKCAssert([controllerClass isSubclassOfClass:[CKComponentController class]],
               @"%@ must inherit from CKComponentController", controllerClass);
-    return [[controllerClass alloc] init];
+    CKComponentController *controller = [[controllerClass alloc] initWithComponent:component];
+
+    [root registerAnnounceableEventsForController:controller];
+    return controller;
   }
   return nil;
 }

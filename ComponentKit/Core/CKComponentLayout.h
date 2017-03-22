@@ -17,7 +17,6 @@
 #import <ComponentKit/CKSizeRange.h>
 
 @class CKComponent;
-@class CKComponentScopeRoot;
 
 struct CKComponentLayoutChild;
 

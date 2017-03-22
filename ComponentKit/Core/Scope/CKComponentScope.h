@@ -11,9 +11,9 @@
 #import <Foundation/Foundation.h>
 
 #import <ComponentKit/CKUpdateMode.h>
-
-class CKThreadLocalComponentScope;
-@class CKComponentScopeHandle;
+#import <ComponentKit/CKComponentScopeHandle.h>
+#import <ComponentKit/CKThreadLocalComponentScope.h>
+#import <ComponentKit/CKComponentScopeRootInternal.h>
 
 typedef void (^CKComponentStateUpdater)(id (^)(id), CKUpdateMode mode);
 
@@ -37,7 +37,8 @@ typedef void (^CKComponentStateUpdater)(id (^)(id), CKUpdateMode mode);
      return [super newWithComponent:...];
    }
  */
-class CKComponentScope {
+template<typename ComponentType, typename ComponentControllerType>
+class CKTypedComponentScope {
 public:
   /**
    @param componentClass      Always pass self.
@@ -49,12 +50,34 @@ public:
                               for why this is usually a bad idea:
                               http://facebook.github.io/react/tips/props-in-getInitialState-as-anti-pattern.html
    */
-  CKComponentScope(Class __unsafe_unretained componentClass, id identifier = nil, id (^initialStateCreator)(void) = nil) noexcept;
+  CKTypedComponentScope(Class __unsafe_unretained componentClass, id identifier = nil, id (^initialStateCreator)(void) = nil) noexcept
+  {
+    _threadLocalScope = CKThreadLocalComponentScope::currentScope();
+    if (_threadLocalScope != nullptr) {
+      const auto childPair = CKComponentScopeFrameChildPairForPair<ComponentType, ComponentControllerType>(_threadLocalScope->stack.top(),
+                                                                                                           _threadLocalScope->newScopeRoot,
+                                                                                                           componentClass,
+                                                                                                           identifier,
+                                                                                                           initialStateCreator,
+                                                                                                           _threadLocalScope->stateUpdates);
+      _threadLocalScope->stack.push({.frame = childPair.frame, .equivalentPreviousFrame = childPair.equivalentPreviousFrame});
+      _scopeHandle = childPair.frame.handle;
+    }
+  }
 
-  ~CKComponentScope();
+  ~CKTypedComponentScope()
+  {
+    if (_threadLocalScope != nullptr) {
+      [_scopeHandle resolve];
+      _threadLocalScope->stack.pop();
+    }
+  }
 
   /** @return The current state for the component being built. */
-  id state(void) const noexcept;
+  id state(void) const noexcept
+  {
+    return _scopeHandle.state;
+  }
 
   /**
    @return A block that schedules a state update when invoked.
@@ -63,18 +86,33 @@ public:
    CKComponentAction and the parent should call -updateState:mode: on itself; this hides the implementation details
    of the parent's state from the child.)
   */
-  CKComponentStateUpdater stateUpdater(void) const noexcept;
+  CKComponentStateUpdater stateUpdater(void) const noexcept
+  {
+    // We must capture _scopeHandle in a local, since this may be destroyed by the time the block executes.
+    std::shared_ptr<CKTypedComponentScopeHandle<ComponentType, ComponentControllerType>> scopeHandle = _scopeHandle;
+    return ^(id (^update)(id), CKUpdateMode mode){ if (scopeHandle) {
+      scopeHandle->updateState(update, mode);
+    }};
+  }
 
   /**
    @return The scope handle associated with this scope.
    @discussion This is exposed for use by the framework. You should almost certainly never call this for any reason
                in your components.
    */
-  CKComponentScopeHandle *scopeHandle(void) const noexcept;
+  std::shared_ptr<CKTypedComponentScopeHandle<ComponentType, ComponentControllerType>> scopeHandle(void) const noexcept
+  {
+    return _scopeHandle;
+  };
 
 private:
-  CKComponentScope(const CKComponentScope&) = delete;
-  CKComponentScope &operator=(const CKComponentScope&) = delete;
+  CKTypedComponentScope(const CKTypedComponentScope&) = delete;
+  CKTypedComponentScope &operator=(const CKTypedComponentScope&) = delete;
   CKThreadLocalComponentScope *_threadLocalScope;
-  CKComponentScopeHandle *_scopeHandle;
+  std::shared_ptr<CKTypedComponentScopeHandle<ComponentType, ComponentControllerType>> _scopeHandle;
 };
+
+@class CKComponent;
+@class CKComponentController;
+
+typedef CKTypedComponentScope<CKComponent, CKComponentController> CKComponentScope;

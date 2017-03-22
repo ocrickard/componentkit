@@ -14,30 +14,40 @@
 
 #import <ComponentKit/CKAssert.h>
 #import <ComponentKit/CKComponentScopeFrame.h>
+#import <ComponentKit/CKComponentScopeRoot.h>
 
-class CKThreadLocalComponentScope {
+@class CKComponent;
+@class CKComponentController;
+
+template<typename ComponentType, typename ComponentControllerType>
+class CKTypedThreadLocalComponentScope {
 public:
-  CKThreadLocalComponentScope(CKComponentScopeRoot *previousScopeRoot,
-                              const CKComponentStateUpdateMap &updates);
-  ~CKThreadLocalComponentScope();
-
+  CKTypedThreadLocalComponentScope(std::shared_ptr<CKTypedComponentScopeRoot<ComponentType, ComponentControllerType>> previousScopeRoot,
+                                   const CKComponentStateUpdateMap &updates);
+  ~CKTypedThreadLocalComponentScope();
+  
   /** Returns nullptr if there isn't a current scope */
-  static CKThreadLocalComponentScope *currentScope() noexcept;
+  static CKTypedThreadLocalComponentScope *currentScope() noexcept;
 
-  CKComponentScopeRoot *const newScopeRoot;
+  std::shared_ptr<CKTypedComponentScopeRoot<ComponentType, ComponentControllerType>> newScopeRoot;
   const CKComponentStateUpdateMap stateUpdates;
   std::stack<CKComponentScopeFramePair> stack;
 };
+
+typedef CKTypedThreadLocalComponentScope<CKComponent, CKComponentController> CKThreadLocalComponentScope;
 
 /**
  Temporarily overrides the current thread's component scope.
  Use for testing and advanced integration purposes only.
  */
-class CKThreadLocalComponentScopeOverride {
+template<typename ComponentType, typename ComponentControllerType>
+class CKTypedThreadLocalComponentScopeOverride {
 public:
-  CKThreadLocalComponentScopeOverride(CKThreadLocalComponentScope *scope) noexcept;
-  ~CKThreadLocalComponentScopeOverride();
+  CKTypedThreadLocalComponentScopeOverride(CKTypedThreadLocalComponentScope<ComponentType, ComponentControllerType> *scope) noexcept;
+  ~CKTypedThreadLocalComponentScopeOverride();
 
 private:
-  CKThreadLocalComponentScope *const previousScope;
+  CKTypedThreadLocalComponentScope<ComponentType, ComponentControllerType> *const previousScope;
 };
+
+typedef CKTypedThreadLocalComponentScopeOverride<CKComponent, CKComponentController> CKThreadLocalComponentScopeOverride;

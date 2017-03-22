@@ -9,20 +9,21 @@
  */
 
 #import <Foundation/Foundation.h>
+
 #import <ComponentKit/CKComponentBoundsAnimation.h>
+#import <ComponentKit/CKComponentScopeRoot.h>
 
 class CKComponentLayout;
-@class CKComponentScopeRoot;
 
 @interface CKTransactionalComponentDataSourceItem : NSObject
 
 - (const CKComponentLayout &)layout;
 
+/** The scope root for this item, which holds references to component controllers and state */
+- (std::shared_ptr<CKComponentScopeRoot>)scopeRoot;
+
 /** The model used to compute the layout */
 @property (nonatomic, strong, readonly) id model;
-
-/** The scope root for this item, which holds references to component controllers and state */
-@property (nonatomic, strong, readonly) CKComponentScopeRoot *scopeRoot;
 
 /** The bounds animation with which to apply the layout */
 @property (nonatomic, readonly) CKComponentBoundsAnimation boundsAnimation;

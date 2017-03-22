@@ -11,17 +11,14 @@
 #import <Foundation/Foundation.h>
 
 #import <ComponentKit/CKComponentBoundsAnimation.h>
+#import <ComponentKit/CKComponentScopeFrame.h>
 #import <ComponentKit/CKComponentScopeTypes.h>
 #import <ComponentKit/CKUpdateMode.h>
 
-@class CKComponent;
-@class CKComponentScopeFrame;
-@class CKComponentScopeRoot;
+#import <unordered_map>
+#import <vector>
 
-typedef NS_ENUM(NSUInteger, CKComponentAnnouncedEvent) {
-  CKComponentAnnouncedEventTreeWillAppear,
-  CKComponentAnnouncedEventTreeDidDisappear,
-};
+@class CKComponent;
 
 /** Component state announcements will always be made on the main thread. */
 @protocol CKComponentStateListener <NSObject>
@@ -33,31 +30,71 @@ typedef NS_ENUM(NSUInteger, CKComponentAnnouncedEvent) {
 
 @end
 
-struct CKBuildComponentResult {
-  CKComponent *component;
-  CKComponentScopeRoot *scopeRoot;
-  CKComponentBoundsAnimation boundsAnimation;
+template<typename ComponentType, typename ComponentControllerType>
+class CKTypedComponentScopeRoot {
+  __weak id<CKComponentStateListener> _listener;
+  CKComponentScopeRootIdentifier _globalIdentifier;
+  std::shared_ptr<CKTypedComponentScopeFrame<ComponentType, ComponentControllerType>> _rootFrame;
+  
+  std::vector<SEL> _announceableComponentEvents;
+  std::unordered_multimap<SEL, ComponentType *__weak> _registeredComponents;
+  
+  std::vector<SEL> _announceableComponentControllerEvents;
+  std::unordered_multimap<SEL, ComponentControllerType *__weak> _registeredComponentControllers;
+  
+public:
+  CKTypedComponentScopeRoot() : _listener(nil) {};
+  CKTypedComponentScopeRoot(id<CKComponentStateListener> listener) : _listener(listener) {};
+  
+  id<CKComponentStateListener> listener() const { return _listener; };
+  CKComponentScopeRootIdentifier globalIdentifier() const { return _globalIdentifier; };
+  std::shared_ptr<CKTypedComponentScopeFrame<ComponentType, ComponentControllerType>> rootFrame() const { return _rootFrame; };
+  
+  void enumerateRegisteredComponentsForEvent(SEL selector, void (^block)(ComponentType *component)) const
+  {
+    for (const auto &c : _registeredComponents.find(selector)) {
+      block(c);
+    }
+  }
+  
+  void enumerateRegisteredComponentControllersForEvent(SEL selector, void (^block)(ComponentControllerType *componentController)) const
+  {
+    for (const auto &c : _registeredComponentControllers.find(selector)) {
+      block(c);
+    }
+  }
+  
+  void registerComponent(ComponentType *component)
+  {
+    for (const auto &selector : _announceableComponentEvents) {
+      if ([component respondsToSelector:selector]) {
+        _registeredComponents.insert({selector, component});
+      }
+    }
+  }
+  
+  void registerComponentController(ComponentControllerType *componentController)
+  {
+    for (const auto &selector : _announceableComponentControllerEvents) {
+      if ([componentController respondsToSelector:selector]) {
+        _registeredComponentControllers.insert({selector, componentController});
+      }
+    }
+  }
 };
 
-CKBuildComponentResult CKBuildComponent(CKComponentScopeRoot *previousRoot,
-                                        const CKComponentStateUpdateMap &stateUpdates,
-                                        CKComponent *(^function)(void));
+typedef CKTypedComponentScopeRoot<CKComponent, CKComponentController> CKComponentScopeRoot;
 
-@interface CKComponentScopeRoot : NSObject
+template<typename ComponentType, typename ComponentControllerType>
+struct CKTypedBuildComponentResult {
+  ComponentType *component;
+  std::shared_ptr<CKTypedComponentScopeRoot<ComponentType, ComponentControllerType>> scopeRoot;
+};
 
-/** Creates a conceptually brand new scope root */
-+ (instancetype)rootWithListener:(id<CKComponentStateListener>)listener;
+typedef CKTypedBuildComponentResult<CKComponent, CKComponentController> CKBuildComponentResult;
 
-/** Creates a new version of an existing scope root, ready to be used for building a component tree */
-- (instancetype)newRoot;
-
-/** Sends the given event to all component controllers that implement it. */
-- (void)announceEventToControllers:(CKComponentAnnouncedEvent)event;
-
-- (CKComponentBoundsAnimation)boundsAnimationFromPreviousScopeRoot:(CKComponentScopeRoot *)previousRoot;
-
-@property (nonatomic, weak, readonly) id<CKComponentStateListener> listener;
-@property (nonatomic, readonly) CKComponentScopeRootIdentifier globalIdentifier;
-@property (nonatomic, strong, readonly) CKComponentScopeFrame *rootFrame;
-
-@end
+template<typename ComponentType, typename ComponentControllerType>
+CKTypedBuildComponentResult<ComponentType, ComponentControllerType>
+CKBuildComponent(std::shared_ptr<CKTypedComponentScopeRoot<ComponentType, ComponentControllerType>> previousRoot,
+                 const CKComponentStateUpdateMap &stateUpdates,
+                 ComponentType *(^function)(void));
